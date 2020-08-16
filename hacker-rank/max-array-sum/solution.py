@@ -1,82 +1,130 @@
-import pdb
+#!/bin/python3
+
+import json
+import math
+import os
+import random
+import re
+import sys
 import typing
 
 
 class SumMem:
+
     def __init__(self):
         self.sum_map = {}
 
-    def _get_key(start_idx: int, end_idx: int) -> str:
-        return f'{start_idx} - {end_idx}'
+    def __str__(self):
+        return f'{json.dumps(self.sum_map, indent=2)}'
 
-    def get(start_idx: int, end_idx: int) -> typing.Optional[int]:
-        key = _get_key(start_idx, end_idx)
-        self.sum_map.get(key, None)
+    def _get_key(self, len_idx: int) -> str:
+        return str(len_idx)
 
-    def set(start_idx: int, end_idx: int, max_sum: int):
-        key = _get_key(start_idx, end_idx)
-        self.sum_map[key] = max_sum
+    def get_max_subset_sum(self, len_idx: int) -> typing.Optional[int]:
+        """len_idx is treated as the key
+
+        len_idx is the index into the array representing the sub array 
+        starting at 0
+        """
+        key_str = self._get_key(len_idx)
+        entry = self.sum_map.get(key_str, None)
+        if not entry:
+            return None
+        return entry['max_subset_sum']
+
+    def get_max_values(self, len_idx: int) -> typing.Optional[int]:
+        key_str = self._get_key(len_idx)
+        entry = self.sum_map.get(key_str, None)
+        if not entry:
+            return None
+        return entry['max_values']
+
+    def set(self, len_idx: int, max_subset_sum: int, max_values: int):
+        """
+        :param max_values: max of the values in the array so we don't have to 
+            find max again; used in _get_max_pairs
+        """
+        key_str = self._get_key(len_idx)
+        self.sum_map[key_str] = {
+            'max_subset_sum': max_subset_sum,
+            'max_values': max_values,
+        }
 
 
-def max_subset_sum(input_arr: typing.List, mem: SumMem):
-    
-    # choose items
-    # items cannot be adjacent
-
-    # for each choice, iterate over sublist of choices
-    # - sublist cannot include adjacent number
-    # - either choose or not choose the next number
-
-    # memoize --> how to represent a unique subset choice
-    # - Option 1: 'binary string' as hash key with value as max subset sum
-    #   - Limiting factor --> length of string 100K
-    # - Option 2: start + end index of sub list as hash key
-    #   - No scalability issues --> same effect
-
-    # Requirements
-    # - len(subset) >= 2
-
+def _get_max(input_arr, next_idx, mem) -> typing.Tuple[int, int]:
     """
-    [3,7,4,6,5]
-    
-    [3, 4]
+    Logic
 
+    L  = [A, B, C-X]
+
+    max(L) = A+max([C-X]), max([B,C-X]), max(pair A with each item in [C-X])
     """
+    if len(input_arr) < 3:
+        raise Exception(
+            f'cannot call _get_max with input_arr of length: {len(input_arr)}')
 
-    input_arr = [3,7,4,6,5,8,9]
+    new_val = input_arr[next_idx]
 
-    print(f'calc max subset sum for: {input_arr}')
-    
-    idx_start = 0
+    # get max of pairs
+    max_of_pair_arr = mem.get_max_values(next_idx - 2)
+    max_pairs = new_val + max_of_pair_arr
 
-    while idx_start < len(input_arr): 
+    # get max_with new value
+    max_with = max_pairs  # if 
+    if mem.get_max_subset_sum(next_idx - 2) is not None:
+        max_with = new_val + mem.get_max_subset_sum(next_idx - 2)
+    # get max without new value
+    max_without = max_pairs  # 
+    if mem.get_max_subset_sum(next_idx - 1) is not None:
+        max_without = mem.get_max_subset_sum(next_idx - 1)
 
-        set_size = 3
-        subset = []
-        idx = idx_start
-        while set_size > 0 and idx < len(input_arr):
-            subset.append(input_arr[idx])
-            set_size -= 1
-            idx += 2
-
-        if len(subset) >= 2:
-            print(f'subset: {subset}')
-
-        idx_start += 1
+    return \
+        max(max_pairs, max_with, max_without), \
+        max(new_val, mem.get_max_values(next_idx - 1))
 
 
+def max_subset_sum(input_arr: typing.List, mem: SumMem) -> int:
+    """
+    Logic
+
+    L  = [A, B, C-X]
+
+    max(L) = A+max([C-X]), max([B,C-X]), max(pair A with each item in [C-X])
+    """
+    if not input_arr or len(input_arr) < 3:
+        return 0
+
+    # base case --> arr of length 3 is max sum of elements at 0 and 2 idx
+    max_sum = input_arr[0] + input_arr[2]
+    mem.set(2, max_sum, max(input_arr[0:3]))
+    # set max sum for other base cases
+    mem.set(0, None, max(input_arr[0:1]))
+    mem.set(1, None, max(input_arr[0:2]))
+
+    next_idx = 3
+    while next_idx < len(input_arr):
+        this_subset_sum, max_values = _get_max(input_arr, next_idx, mem)
+
+        max_sum = max(this_subset_sum, max_sum)
+        mem.set(next_idx, max_sum, max_values)
+
+        next_idx += 1
+
+    return max_sum
 
 
+def maxSubsetSum(arr):
+    mem = SumMem()
+    return max_subset_sum(arr, mem)
 
 
 def main():
-    print(f'hello world')
 
     input_arr = [3,7,4,6,5]
+    input_arr = [-2, 1, 3, -4, 5]
+    input_arr = [2,1,5,8,4]
 
-    mem = SumMem()
-
-    print(f'max subset sum: {max_subset_sum(input_arr, mem)}')
+    print(f'max subset sum: {maxSubsetSum(input_arr)}')
 
 
 if __name__ == '__main__':
