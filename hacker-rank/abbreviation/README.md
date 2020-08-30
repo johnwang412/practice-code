@@ -2,5 +2,6 @@
 
 https://www.hackerrank.com/challenges/abbr/problem
 
-do not recurse
+Status: Solved
 
+Run with: `cat input.txt | ./main.py && cat output.txt`
