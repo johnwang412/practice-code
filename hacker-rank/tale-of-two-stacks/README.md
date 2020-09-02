@@ -2,7 +2,7 @@
 
 https://www.hackerrank.com/challenges/ctci-queue-using-two-stacks/
 
-status: incomplete
+status: complete
 
 run: `cat input.txt | ./main.py`
 
