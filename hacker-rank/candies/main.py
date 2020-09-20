@@ -9,36 +9,40 @@ import sys
 import typing
 
 
-def _adjust_fairness(ratings_arr: typing.List, candies_arr: typing.List, idx: int):
-    if idx <= 0: 
-        return
-
-    while idx > 0 \
-            and ratings_arr[idx] < ratings_arr[idx-1] \
-            and candies_arr[idx] >= candies_arr[idx-1]:
-
-        candies_arr[idx-1] = candies_arr[idx] + 1
-        idx -= 1
+def process_desc_start(arr, candies, desc_start, i):
+    j = i - 1
+    num_candies = 2
+    while j >= desc_start:
+        candies[j] = max(num_candies, candies[j])
+        num_candies += 1
+        j -= 1
 
 
 # Complete the candies function below.
-def candies(num_children: int, ratings_arr: typing.List):
+def candies(n: int, arr: typing.List):
 
-    candies_arr = []
+    if n != len(arr):
+        raise Exception(f'num children != num ratings')
 
-    # ratings_arr: [2, 4, 3, 5, 2, 6, 4, 5]
+    candies = [1] * n
+    desc_start = None
 
-    for idx in range(0, len(ratings_arr)):
+    for i in range(1, len(arr)):
 
-        score = 1
-        if idx > 0 and ratings_arr[idx] > ratings_arr[idx-1]:
-            score = candies_arr[idx-1] + 1
-        
-        candies_arr.append(score)
+        if arr[i] >= arr[i-1] and desc_start is not None:
+            process_desc_start(arr, candies, desc_start, i-1)
+            desc_start = None
 
-        _adjust_fairness(ratings_arr, candies_arr, idx)
+        if arr[i] > arr[i-1]: 
+            candies[i] = candies[i-1]+1
 
-    return functools.reduce(lambda x, y: x+y, candies_arr, 0)
+        if arr[i] < arr[i-1] and desc_start is None:
+            desc_start = i-1
+
+    if desc_start is not None:
+        process_desc_start(arr, candies, desc_start, len(arr)-1)
+    
+    return sum(candies)
 
 
 if __name__ == '__main__':
