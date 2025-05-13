@@ -43,7 +43,7 @@ def send_puts(url, key_idx_start, num_requests, value_length, repeat) -> int:
 
             if response and response.status_code == 200:
                 ret_json = response.json()
-                kv_store_size = ret_json.get('kv_store_size', 0)
+                kv_store_size = ret_json.get('kv_store_size', 'UNKNOWN')
                 num_200s += 1
             else:
                 LOGGER.error(f"Failed to store {key}: {response.status_code}. KV store: {kv_store_size}.")

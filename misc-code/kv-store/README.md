@@ -1,5 +1,9 @@
 # Work progress
 
+2025-05-13:
+    - Updated app.py and used locust to do some load testing. Getting ~3K RPS
+        for single process / thread in-memory KV store.
+
 2025-05-12:
     - Step 1a complete
         - Successfully limited memory on Docker container. KV store OOM'ing.

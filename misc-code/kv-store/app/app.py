@@ -1,9 +1,9 @@
+import gc
 import json
 import logging
 import os
 
 import flask
-from pympler import asizeof
 
 import kv_store
 
@@ -29,19 +29,23 @@ def get():
 @app.route('/put', methods=['PUT'])
 def put():
     global global_store
+
     data = flask.request.get_json()
     key = data.get('key')
     val = data.get('value')
     global_store.put(key, val)
-    ret_info = {
-        'kv_store_size': asizeof.asizeof(global_store),
-    }
+
+    ret_info = {}
     return json.dumps(ret_info), 200
 
 
 @app.route('/harikari', methods=['POST'])
 def harikari():
-    raise Exception("I sacrifice myself for the greater good.")
+    for i in range(128):
+        key = f"key_{i}"
+        val = os.urandom(1024 * 1024)
+        global_store.put(key, val)
+    return 'OK', 200
 
 
 @app.route('/health', methods=['GET'])
