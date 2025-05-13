@@ -39,6 +39,11 @@ def put():
     return json.dumps(ret_info), 200
 
 
+@app.route('/harikari', methods=['POST'])
+def harikari():
+    raise Exception("I sacrifice myself for the greater good.")
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return 'OK', 200

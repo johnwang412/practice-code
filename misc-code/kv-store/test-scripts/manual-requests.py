@@ -1,3 +1,8 @@
+"""
+Manually configured the script to test the KV store with different memory
+allocations. KV store with less memory and swapping will have lower RPS.
+"""
+
 import http
 import logging
 
@@ -19,7 +24,7 @@ def generate_large_string(size_in_bytes):
 def send_puts(url, key_idx_start, num_requests, value_length, repeat) -> int:
     """
     :param repeat: Number of times to repeat the requests with same keys
-    
+
     :return: Number of successful PUT requests (HTTP 200)
     """
     kv_store_size = 0
@@ -35,7 +40,7 @@ def send_puts(url, key_idx_start, num_requests, value_length, repeat) -> int:
             except (http.client.RemoteDisconnected, requests.exceptions.ConnectionError):
                 LOGGER.error(f"Connection closed by server while storing {key}. KV store: {kv_store_size}.")
                 break
-            
+
             if response and response.status_code == 200:
                 ret_json = response.json()
                 kv_store_size = ret_json.get('kv_store_size', 0)
@@ -44,7 +49,7 @@ def send_puts(url, key_idx_start, num_requests, value_length, repeat) -> int:
                 LOGGER.error(f"Failed to store {key}: {response.status_code}. KV store: {kv_store_size}.")
                 break
             LOGGER.info(f'i: {i}, kv_store_size: {kv_store_size}')
-    
+
     return num_200s
 
 """
@@ -65,15 +70,15 @@ def main():
 
     start_time = time.time()
     num_200s = send_puts(
-        url=f'{base_url}{endpoint}', 
-        key_idx_start=0, 
-        num_requests=num_pairs_within_memory, 
+        url=f'{base_url}{endpoint}',
+        key_idx_start=0,
+        num_requests=num_pairs_within_memory,
         value_length=value_size,
         repeat=1,
     )
     end_time = time.time()
     LOGGER.info(f'RPS within memory: {num_200s / (end_time - start_time):.2f} requests/sec')
-    
+
 
 if __name__ == "__main__":
     main()
