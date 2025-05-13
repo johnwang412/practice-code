@@ -6,7 +6,7 @@ import time
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 
@@ -47,7 +47,6 @@ def send_puts(url, key_idx_start, num_requests, value_length, repeat) -> int:
     
     return num_200s
 
-
 """
 PERF:
     - mem_limit: 64m
@@ -56,11 +55,11 @@ PERF:
 """
 
 def main():
-    base_url = "http://localhost:5001"  # Replace with your Flask app's URL
-    endpoint = "/put"  # Replace with the correct endpoint for PUT requests
+    base_url = "http://localhost:5001"
+    endpoint = "/put"
     # Num pairs of 128x128 char values that fit in memory of docker container
     #   booted with docker-compose with mem_limit: 32m and memswap_limit: 32m
-    num_pairs_within_memory = 50
+    num_pairs_within_memory = 5
     num_pairs = 500  # Number of MB values to store
     value_size = 1028 * 1028
 
@@ -70,10 +69,10 @@ def main():
         key_idx_start=0, 
         num_requests=num_pairs_within_memory, 
         value_length=value_size,
-        repeat=20,
+        repeat=1,
     )
     end_time = time.time()
-    LOGGER.error(f'RPS within memory: {num_200s / (end_time - start_time):.2f} requests/sec')
+    LOGGER.info(f'RPS within memory: {num_200s / (end_time - start_time):.2f} requests/sec')
     
 
 if __name__ == "__main__":
