@@ -18,39 +18,10 @@ app = flask.Flask(__name__)
 global_store = kv_store.KVStore()
 
 
-def _try_peers(key):
-    peer_backends = os.environ.get('BACKENDS', '').split(',')
-    if peer_backends[0] == '':
-        peer_backends = []
-    LOGGER.info(f"Trying peers for key {key}: {peer_backends}")
-    for peer in peer_backends:
-        try:
-            url = f'http://{peer}/peer-get?key={key}'
-            response = requests.get(url, timeout=0.05)
-            LOGGER.info(f"Trying peer {peer} for key {key} - response: {response.status_code}")
-
-            if response.status_code == 200:
-                return response.text
-        except requests.RequestException as e:
-            LOGGER.error(f"Error contacting peer {peer}: {e}")
-    return None
-
-
-@app.route('/peer-get', methods=['GET'])
-def peer_get():
-    key = flask.request.args.get('key')
-    val = global_store.get(key)
-    if val is None:
-        return '', 404
-    return str(val), 200
-
-
 @app.route('/get', methods=['GET'])
 def get():
     key = flask.request.args.get('key')
     val = global_store.get(key)
-    if val is None:
-        val = _try_peers(key)
     if val is None:
         return '', 404
     return str(val), 200

@@ -1,6 +1,36 @@
 version: '3'
 
 services:
+  # Consul cluster
+  consul-server-1:
+    image: consul:1.15
+    container_name: consul-server-1
+    command: agent -server -bootstrap-expect=3 -node=server-1 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-2 -retry-join=consul-server-3
+    ports:
+      - "8500:8500"  # HTTP UI/API
+      - "8600:8600/udp"  # DNS
+  consul-server-2:
+    image: consul:1.15
+    container_name: consul-server-2
+    command: agent -server -bootstrap-expect=3 -node=server-2 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-3
+  consul-server-3:
+    image: consul:1.15
+    container_name: consul-server-3
+    command: agent -server -bootstrap-expect=3 -node=server-3 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-2
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:latest
+    container_name: nginx-lb
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "5004:5004"
+    depends_on:
+      - kv-store-1
+      - kv-store-2
+      - kv-store-3
+    restart: unless-stopped
+  # KV Store Services
   kv-store-1:
     build: .
     container_name: kv-store-1
@@ -40,15 +70,3 @@ services:
     environment:
       - PORT=5003
       - BACKENDS=kv-store-1:5001,kv-store-2:5002
-  nginx:
-    image: nginx:latest
-    container_name: nginx-lb
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "5004:5004"
-    depends_on:
-      - kv-store-1
-      - kv-store-2
-      - kv-store-3
-    restart: unless-stopped
