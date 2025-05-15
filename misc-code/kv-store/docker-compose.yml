@@ -44,29 +44,32 @@ services:
     environment:
       - PORT=5001
       - BACKENDS=kv-store-2:5002,kv-store-3:5003
-  kv-store-2:
-    build: .
-    container_name: kv-store-2
-    mem_limit: 128m
-    memswap_limit: 128m
-    ports:
-      - "5002:5002"
-    expose:
-      - "5002"
-    restart: unless-stopped
-    environment:
-      - PORT=5002
-      - BACKENDS=kv-store-1:5001,kv-store-3:5003
-  kv-store-3:
-    build: .
-    container_name: kv-store-3
-    mem_limit: 128m
-    memswap_limit: 128m
-    ports:
-      - "5003:5003"
-    expose:
-      - "5003"
-    restart: unless-stopped
-    environment:
-      - PORT=5003
-      - BACKENDS=kv-store-1:5001,kv-store-2:5002
+      - SERVICE_NAME=kv-store-1
+  # kv-store-2:
+  #   build: .
+  #   container_name: kv-store-2
+  #   mem_limit: 128m
+  #   memswap_limit: 128m
+  #   ports:
+  #     - "5002:5002"
+  #   expose:
+  #     - "5002"
+  #   restart: unless-stopped
+  #   environment:
+  #     - PORT=5002
+  #     - BACKENDS=kv-store-1:5001,kv-store-3:5003
+  #     - SERVICE_NAME=kv-store-2
+  # kv-store-3:
+  #   build: .
+  #   container_name: kv-store-3
+  #   mem_limit: 128m
+  #   memswap_limit: 128m
+  #   ports:
+  #     - "5003:5003"
+  #   expose:
+  #     - "5003"
+  #   restart: unless-stopped
+  #   environment:
+  #     - PORT=5003
+  #     - BACKENDS=kv-store-1:5001,kv-store-2:5002
+  #     - SERVICE_NAME=kv-store-3

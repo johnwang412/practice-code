@@ -7,6 +7,7 @@ import flask
 import requests
 
 import kv_store
+import service_mgmt
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(
@@ -16,7 +17,7 @@ logging.basicConfig(
 
 app = flask.Flask(__name__)
 global_store = kv_store.KVStore()
-
+service_mgmt.register_service()
 
 @app.route('/get', methods=['GET'])
 def get():
