@@ -17,16 +17,17 @@
 
 KV store implementation
 
+Replicated cache
 1. Write simple in memory kv store
     a. Don't track memory usage - just get it to work and then deploy to docker
         container that's memory bound and see what errors we get
     b. Confirm that RPS is higher when not swapping to disk
 2. Write replication capabilities
-3. Write distributed capabilities
+3. Write replicated cache with persistence
 
-4. Write simple persistent kv store
-5. - replication
-6. - distributed
+Distributed cache
+1. Write distributed cache
+2. Write distributed cache with persistence
 
 # Tips
 
