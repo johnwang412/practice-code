@@ -1,8 +1,9 @@
 version: '3'
 
 services:
-  # Consul cluster
+  # Consul cluster=
   consul-server-1:
+    # Serves as the HTTP console UI so binding client to 0.0.0.0
     image: consul:1.15
     container_name: consul-server-1
     command: agent -server -bootstrap-expect=3 -node=server-1 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-2 -retry-join=consul-server-3
@@ -12,25 +13,25 @@ services:
   consul-server-2:
     image: consul:1.15
     container_name: consul-server-2
-    command: agent -server -bootstrap-expect=3 -node=server-2 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-3
+    command: agent -server -bootstrap-expect=3 -node=server-2 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-3
+    expose:
+      - "8500"  # HTTP UI/API
+      - "8600/udp"  # DNS
   consul-server-3:
     image: consul:1.15
     container_name: consul-server-3
-    command: agent -server -bootstrap-expect=3 -node=server-3 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-2
-  # Nginx Load Balancer
-  # NOTE: Deprecated while we're working on the primary / replica setup
-  nginx:
-    image: nginx:latest
-    container_name: nginx-lb
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "5004:5004"
-    depends_on:
-      - kv-store-1
-      # - kv-store-2
-      # - kv-store-3
-    restart: unless-stopped
+    command: agent -server -bootstrap-expect=3 -node=server-3 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-2
+    expose:
+      - "8500"  # HTTP UI/API
+      - "8600/udp"  # DNS
+  consul-agent:
+    # Serves as API interface so needs to listen to incoming requests -> client binds to 0.0.0.0
+    image: consul:1.15
+    container_name: consul-agent
+    command: agent -node=client-1 -client=0.0.0.0 -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-2 -retry-join=consul-server-3
+    expose:
+      - "8500"  # HTTP UI/API
+      - "8600/udp"  # DNS
   # KV Store Services
   kv-store-1:
     build: .
@@ -42,6 +43,8 @@ services:
     expose:
       - "5001"
     restart: unless-stopped
+    depends_on:
+      - consul-agent
     environment:
       - PORT=5001
       - BACKENDS=kv-store-2:5002,kv-store-3:5003
@@ -77,3 +80,17 @@ services:
   #     - BACKENDS=kv-store-1:5001,kv-store-2:5002
   #     - SERVICE_NAME=kv-store
   #     - SERVICE_ID=kv-store-3
+  # # Nginx Load Balancer for Consul
+  # consul-nginx:
+  #   image: nginx:latest
+  #   container_name: consul-nginx
+  #   volumes:
+  #     - ./consul-nginx.conf:/etc/nginx/nginx.conf:ro
+  #   ports:
+  #     - "8500:8500"  # HTTP UI/API
+  #     - "8600:8600/udp"  # DNS
+  #   depends_on:
+  #     - consul-server-1
+  #     - consul-server-2
+  #     - consul-server-3
+  #   restart: unless-stopped

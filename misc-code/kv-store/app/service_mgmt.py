@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def register_service() -> str:
-    consul_agent_url = 'http://consul-server-1:8500'
+    consul_agent_url = 'http://consul-agent:8500'
     service_name = os.getenv('SERVICE_NAME', None)
     service_id = os.getenv('SERVICE_ID', None)
     service_port = os.getenv('PORT', None)
