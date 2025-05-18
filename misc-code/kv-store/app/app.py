@@ -10,19 +10,23 @@ import kv_store
 import service_mgmt
 
 LOGGER = logging.getLogger(__name__)
+
+
+# App configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
-
 app = flask.Flask(__name__)
-global_store = kv_store.KVStore()
-service_mgmt.register_service()
+GLOBAL_STORE = kv_store.KVStore()
+SERVICE_MODE = service_mgmt.register_service()
 
+
+# APIs
 @app.route('/get', methods=['GET'])
 def get():
     key = flask.request.args.get('key')
-    val = global_store.get(key)
+    val = GLOBAL_STORE.get(key)
     if val is None:
         return '', 404
     return str(val), 200
@@ -30,24 +34,15 @@ def get():
 
 @app.route('/put', methods=['PUT'])
 def put():
-    global global_store
+    global GLOBAL_STORE
 
     data = flask.request.get_json()
     key = data.get('key')
     val = data.get('value')
-    global_store.put(key, val)
+    GLOBAL_STORE.put(key, val)
 
     ret_info = {}
     return json.dumps(ret_info), 200
-
-
-@app.route('/harikari', methods=['POST'])
-def harikari():
-    for i in range(128):
-        key = f"key_{i}"
-        val = os.urandom(1024 * 1024)
-        global_store.put(key, val)
-    return 'OK', 200
 
 
 @app.route('/health', methods=['GET'])

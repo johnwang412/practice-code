@@ -1,5 +1,16 @@
 # Work progress
 
+2025-05-16:
+    - Working on writing a replicated version of the kv store
+    - Got Consul to load up in docker-compose and got the kv store registered
+    - TODO:
+        - Put Consul cluster behind nginx
+        - Get a synchronous version of replication running - test this
+        - Write logic to register kv store instances as either leader or
+            replica
+        - Figure out how to kill kv store worker instances (probably
+            docker-compose restart cmd)
+
 2025-05-13:
     - Updated app.py and used locust to do some load testing. Getting ~3K RPS
         for single process / thread in-memory KV store.

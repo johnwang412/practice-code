@@ -18,6 +18,7 @@ services:
     container_name: consul-server-3
     command: agent -server -bootstrap-expect=3 -node=server-3 -client=0.0.0.0 -ui -bind=0.0.0.0 -retry-join=consul-server-1 -retry-join=consul-server-2
   # Nginx Load Balancer
+  # NOTE: Deprecated while we're working on the primary / replica setup
   nginx:
     image: nginx:latest
     container_name: nginx-lb
@@ -27,8 +28,8 @@ services:
       - "5004:5004"
     depends_on:
       - kv-store-1
-      - kv-store-2
-      - kv-store-3
+      # - kv-store-2
+      # - kv-store-3
     restart: unless-stopped
   # KV Store Services
   kv-store-1:
@@ -44,7 +45,8 @@ services:
     environment:
       - PORT=5001
       - BACKENDS=kv-store-2:5002,kv-store-3:5003
-      - SERVICE_NAME=kv-store-1
+      - SERVICE_NAME=kv-store
+      - SERVICE_ID=kv-store-1
   # kv-store-2:
   #   build: .
   #   container_name: kv-store-2
@@ -58,7 +60,8 @@ services:
   #   environment:
   #     - PORT=5002
   #     - BACKENDS=kv-store-1:5001,kv-store-3:5003
-  #     - SERVICE_NAME=kv-store-2
+  #     - SERVICE_NAME=kv-store
+  #     - SERVICE_ID=kv-store-2
   # kv-store-3:
   #   build: .
   #   container_name: kv-store-3
@@ -72,4 +75,5 @@ services:
   #   environment:
   #     - PORT=5003
   #     - BACKENDS=kv-store-1:5001,kv-store-2:5002
-  #     - SERVICE_NAME=kv-store-3
+  #     - SERVICE_NAME=kv-store
+  #     - SERVICE_ID=kv-store-3
