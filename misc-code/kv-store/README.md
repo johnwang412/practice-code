@@ -2,10 +2,16 @@
 
 - TODO:
     - Get a synchronous version of replication running - test this
+        - Get primary to replicate to replicas synchronousl
     - Write logic to register kv store instances as either leader or
         replica
     - Figure out how to kill kv store worker instances (probably
         docker-compose restart cmd)
+
+2025-05-19:
+    - UNRESOLVED ERROR: Consul would show a single kv-service registered as both the primary and replica
+        - Error stopped occuring...
+    - Got instances to register as primary and replica
 
 2025-05-18:
     - Not necessary to put Consul behind Nginx. Should actually be going through
