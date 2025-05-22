@@ -1,6 +1,7 @@
 # Work progress
 
 - TODO:
+    - Get Aider working with local LLM
     - Get a synchronous version of replication running - test this
         - Get primary to replicate to replicas synchronousl
     - Write logic to register kv store instances as either leader or

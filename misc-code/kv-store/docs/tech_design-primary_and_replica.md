@@ -23,3 +23,29 @@ Consul registration
     primary already, then register as a replica node
 - Primary replicates writes to replicas synchronously
     [ ] How to handle replica success, but primary failure after replicas are successful
+
+# Replication
+
+## Option 1
+
+Each primary replication request has an incrementing ID. When primary fails,
+the replica with greatest ID is elected leader.
+- How do replicas compare IDs?
+    - Use election/<replica_id>/<replication_sequence_number> as the key to
+        report ids on
+    - Each replica enumerates its neighbors in the replica group and then
+        waits until all sequence numbers are in
+    - Each replica then attempts to become the leader only if it has the
+        highest sequence number
+    - Once a leader is elected, it clears sequence numbers
+        If the leader fails at this point, the sequence numbers are still
+        accurate.
+        IMPLICATION is that replicas should only check if all active replicas
+        have a sequence number and not that there are as many sequence nubmers
+        as active replicas.
+    [ ] Sequence numbers probably need to be written to disk
+
+[ ] How to determine whether the leader is truly down? What if leader comes back after long
+    network partition and a new leader already exists? (use generation numbers)
+
+[ ] How does new leader know what to replicate to new followers that may be behind?
