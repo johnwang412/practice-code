@@ -17,6 +17,17 @@ def translate_dir(input_str: str) -> str:
     return ''
 
 
+def process_input(board: assets.Board, turtle: assets.Turtle):
+
+    # Listen for arrow key events from keyboard and attempt to move turtle on
+    # board
+    # TODO: Practice mocking out input
+    while True:
+        direction = translate_dir(input("Press arrow key and hit enter: "))
+        turtle.move(direction)
+        print(turtle)
+
+
 def main():
     """
     Funcitonal requirements:
@@ -32,13 +43,7 @@ def main():
     board = assets.Board(10, 10)
     turtle = assets.Turtle(0, 0, board)
 
-    # Listen for arrow key events from keyboard and attempt to move turtle on
-    # board
-    # TODO: Practice mocking out input
-    while True:
-        direction = translate_dir(input("Press arrow key and hit enter: "))
-        turtle.move(direction)
-        print(turtle)
+    process_input(board, turtle)
 
 
 if __name__ == "__main__":

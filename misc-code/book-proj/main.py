@@ -35,7 +35,7 @@ pages_table:
     - content_json
 
 
-DATABASE SCALE    
+DATABASE SCALE
 If we have 1M DAU - we'll be generating 1M books a day -> 400M books a year. 10 pages per book -> 4B pages per year.
     - Use a distributed database like DynamoDB
 Access patterns:
