@@ -23,6 +23,23 @@ class Board:
             for obstacle in obstacles:
                 self.matrix[obstacle[1]][obstacle[0]] = 0
 
+    def get_string(self, turtle_coords: list):
+        """
+        :param turtle_coords: list of turtle coordinates [(col, row), ...]
+        :return: string representation of board with turtles
+        """
+        board_str = ''
+        for row in reversed(range(len(self.matrix))):
+            for col in range(len(self.matrix[0])):
+                if (col, row) in turtle_coords:
+                    board_str += 'T '
+                elif self.matrix[row][col] == 0:
+                    board_str += 'X '
+                else:
+                    board_str += 'O '
+            board_str += '\n'
+        return board_str
+
     def is_open(self, col: int, row: int) -> bool:
         if 0 <= col < len(self.matrix[0]) and 0 <= row < len(self.matrix):
             return self.matrix[row][col] == 1
