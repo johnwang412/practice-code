@@ -2,3 +2,4 @@
 tags
 **/.venv
 **/__pycache__
+**/.vscode
