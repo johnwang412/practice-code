@@ -1,7 +1,5 @@
+from app.database.catalog_db import CatalogDBConn
 
-class CatalogDB:
-    def __init__(self):
-        pass
 
-def get_catalog_db():
-    return CatalogDB()
+def get_catalog_db_conn():
+    return CatalogDBConn()
