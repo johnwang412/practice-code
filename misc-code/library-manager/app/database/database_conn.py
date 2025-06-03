@@ -1,5 +1,10 @@
-from app.database.catalog_db import CatalogDBConn
+from app.database.catalog_db import CatalogDB
 
 
-def get_catalog_db_conn():
-    return CatalogDBConn()
+def _db_session():
+    # TODO: generate sqlalchemy session
+    return None
+
+def get_catalog_db():
+    db_session = _db_session()
+    return CatalogDB(db_session)

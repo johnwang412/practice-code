@@ -1,6 +1,12 @@
+"""
+Catalog management service API
+
+Sits within bounded context of:
+- Books / Items
+- Checkouts
+"""
 from flask import Flask, jsonify, request
 
-from app.logic import catalog_management_logic
 from app.database import database_conn
 
 app = Flask(__name__)
@@ -10,9 +16,9 @@ def checkout_item():
     item_id = request.args.get('item_id')
     user_id = request.args.get('user_id')
 
-    catalog_db = database_conn.get_catalog_db_conn()
-    success, err = catalog_management_logic.checkout_item(
-        catalog_db, item_id, user_id)
+    catalog_db = database_conn.get_catalog_db()
+
+    success, err = catalog_db.try_checkout(item_id, user_id)
 
     response_code = 200 if success else 500
     return jsonify({
