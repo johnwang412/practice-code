@@ -39,3 +39,15 @@ Checkout:
     check if book is availale (num_out < num_avail) -> select for update
     Add record to check_out table
     END transaction
+
+# Services structure
+
+- Service: Users
+    - auth
+    - user management
+- Service: Items
+    - item management
+    - checkout
+- Service: Conference rooms
+    - booking
+
