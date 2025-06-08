@@ -8,6 +8,7 @@ Sits within bounded context of:
 from flask import Flask, jsonify, request
 
 from app.database import database_conn
+from app.data import catalog_data
 
 app = Flask(__name__)
 
@@ -16,15 +17,14 @@ def checkout_item():
     item_id = request.args.get('item_id')
     user_id = request.args.get('user_id')
 
-    catalog_db = database_conn.get_catalog_db()
+    with database_conn.get_db_session() as db_session:
 
-    success, err = catalog_db.try_checkout(item_id, user_id)
+        success, err = catalog_data.try_checkout(item_id, user_id)
 
-    response_code = 200 if success else 500
-    return jsonify({
-        'success': success,
-        'err': err
-    }), response_code
+        return jsonify({
+            'success': success,
+            'err': err
+        }), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
