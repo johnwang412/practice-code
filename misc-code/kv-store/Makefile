@@ -1,6 +1,3 @@
-docker:
-	docker build -t kv-store .
-
 local-env: .venv
 	.venv/bin/pip install -r requirements-dev.txt
 

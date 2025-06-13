@@ -1,7 +1,6 @@
 # Work progress
 
 - TODO:
-    - Get Aider working with local LLM
     - Get a synchronous version of replication running - test this
         - Get primary to replicate to replicas synchronousl
     - Write logic to register kv store instances as either leader or
@@ -54,3 +53,11 @@ Distributed cache
 # Tips
 
 * Use `docker events --filter container=kv-store` to see Docker system events like OOM kill
+
+# Infrastructure overview (as of 2025-05-19)
+
+Using Consul for service registration. Three Consul servers and single agent
+that takes API calls.
+
+Three KV Store instances that each try to register as primary. If there is a
+primary already, then instances register as replica.
