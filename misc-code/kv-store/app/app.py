@@ -1,13 +1,11 @@
-import gc
 import json
 import logging
-import os
 
 import flask
-import requests
 
 import kv_store
 import service_mgmt
+import constants
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +17,10 @@ logging.basicConfig(
 )
 app = flask.Flask(__name__)
 GLOBAL_STORE = kv_store.KVStore()
-SERVICE_MODE = service_mgmt.register_service()
+APP_CONFIG = {
+    'mode': constants.APP_MODE_REPLICA, # Start each node off as a replica
+}
+SERVICE_MODE = service_mgmt.start_service_registration_thread(APP_CONFIG)
 
 
 # APIs
@@ -34,6 +35,11 @@ def get():
 
 @app.route('/put', methods=['PUT'])
 def put():
+    """
+    TODO: reject writes if we're running in replica mode
+    TODO: when replicating writes to replicas, do not replicate to self
+        in case self is in the list of replicas
+    """
     global GLOBAL_STORE
 
     data = flask.request.get_json()
