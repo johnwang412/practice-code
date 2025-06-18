@@ -37,7 +37,7 @@ class ServiceInfo:
         self.session_id = None
 
     def primary_lock_name(self) -> str:
-        return f'lock/{self.service_id}-{self.service_name_primary}-lock'
+        return f'lock/{self.service_name_primary}-lock'
 
     def session_name(self) -> str:
         return f'{self.service_id}-{self.service_name_primary}-session'
@@ -108,7 +108,6 @@ def _try_register_as_primary(
                 session expires
         """
         # If we were able to acquire the lock, then the primary node is down
-        LOGGER.info(f"Replica {service_info.service_id} acquired lock, promoting to primary")
         # Register as primary
         # TODO: check these parameters make sense for various conditions
         register_success = consul_client.agent.service.register(
@@ -133,10 +132,8 @@ def _try_register_as_primary(
             # Note: If this node was a replica, we don't have to deregister it
             # from the replica service group because a service_id can only be
             # registered to a single service in Consul
-            LOGGER.info(f"Promoted {service_info.service_id} to primary")
             return session_id
 
-        LOGGER.error(f"Failed to register {service_info.service_id} as primary after acquiring lock")
         return None
 
 
@@ -161,6 +158,7 @@ def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo
       [ ] How to do this more dynamically (same for replicas getting primary)... but does that even matter
     """
     consul_client.session.renew(session_id=service_info.session_id)
+    LOGGER.info(f'Renewed session: {service_info.session_id}')
 
 
 def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> str:
@@ -188,6 +186,7 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
         if session_id is not None:
             service_info.set_session_id(session_id)
             resulting_app_mode = constants.APP_MODE_PRIMARY
+            LOGGER.info(f'Set node as primary')
 
     # if we're the replica, we should register as such
     if resulting_app_mode == constants.APP_MODE_REPLICA:
@@ -203,6 +202,7 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
                 'deregister_critical_service_after': '1m'
             }
         )
+        LOGGER.info(f'Set node as replica')
 
     return resulting_app_mode
 
@@ -213,15 +213,17 @@ def service_registration_thread(app_config):
         by the service registration thread as needed
     """
     consul_client = consul.Consul(host='consul-agent')
-
     service_info: ServiceInfo = _get_service_info()
 
     while True:
-        # IF app_config is primary, then do primary activities, else do replica activities
-        if app_config['mode'] == constants.APP_MODE_PRIMARY:
-            _run_primary_configs(consul_client, service_info)
-        elif app_config['mode'] == constants.APP_MODE_REPLICA:
-            app_config['mode'] = _run_replica_configs(consul_client, service_info)
+        try:
+            # IF app_config is primary, then do primary activities, else do replica activities
+            if app_config['mode'] == constants.APP_MODE_PRIMARY:
+                _run_primary_configs(consul_client, service_info)
+            elif app_config['mode'] == constants.APP_MODE_REPLICA:
+                app_config['mode'] = _run_replica_configs(consul_client, service_info)
+        except Exception as e:
+            LOGGER.error(e)
 
         # Sleep for a while before checking again
         time.sleep(_get_sleep_interval(app_config['mode']))
@@ -232,6 +234,7 @@ def start_service_registration_thread(app_config: dict):
     :param app_config: dictionary specifying the app 'mode' - to be modified
         by the service registration thread as needed
     """
+    LOGGER.info(f'****** CALLED start service reg')
     def monitor_registration_thread(check_interval_sec, app_config):
         t = None
         while True:
@@ -250,6 +253,7 @@ def start_service_registration_thread(app_config: dict):
         daemon=True,
         args=(monitor_interval_sec, app_config))
     monitor_thread.start()
+    LOGGER.info(f'****** DONE start service reg')
     return monitor_thread
 
 

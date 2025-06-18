@@ -20,7 +20,7 @@ GLOBAL_STORE = kv_store.KVStore()
 APP_CONFIG = {
     'mode': constants.APP_MODE_REPLICA, # Start each node off as a replica
 }
-SERVICE_MODE = service_mgmt.start_service_registration_thread(APP_CONFIG)
+service_mgmt.start_service_registration_thread(APP_CONFIG)
 
 
 # APIs
