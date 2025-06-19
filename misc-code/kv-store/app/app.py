@@ -2,6 +2,8 @@ import json
 import logging
 
 import flask
+import uwsgi
+import uwsgidecorators
 
 import kv_store
 import service_mgmt
@@ -20,7 +22,16 @@ GLOBAL_STORE = kv_store.KVStore()
 APP_CONFIG = {
     'mode': constants.APP_MODE_REPLICA, # Start each node off as a replica
 }
-service_mgmt.start_service_registration_thread(APP_CONFIG)
+
+
+@uwsgidecorators.postfork
+def post_fork_hook():
+    """This function runs in the forked worker process, not in the master
+    The worker process starts a thread that interfaces with Consul and
+    registers the worker as either the primary or a replica.
+    """
+    if uwsgi.worker_id() > 0:  # Only in worker processes, not master
+        service_mgmt.start_service_registration_thread(APP_CONFIG)
 
 
 # APIs
@@ -53,4 +64,4 @@ def put():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return 'OK', 200
+    return f'OK - mode: {APP_CONFIG["mode"]}', 200
