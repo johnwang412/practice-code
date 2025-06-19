@@ -86,13 +86,14 @@ def _try_register_as_primary(
     #   it's destroyed / expires
     # ttl means session will take 5 seconds more to expire than the refresh
     #   interval run by the primary node so we can be safe
-    # Lock delay prevents locks from being acquired for 15s to give leader
-    #   (potentially still alive) time to respond / mitigate
+    # Lock delay prevents locks from being acquired for X seconds to give
+    #   leader (potentially still alive) time to respond / mitigate
+    # TODO: put lock_delay into constants
     session_id = consul_client.session.create(
         name=service_info.session_name(),
         behavior='release',
         ttl=reg_service_config['reg_primary_interval_sec'] + 5,
-        lock_delay=15,
+        lock_delay=5,
     )
     lock_acquired = consul_client.kv.put(
         key=service_info.primary_lock_name(),
@@ -101,15 +102,23 @@ def _try_register_as_primary(
     )
     if lock_acquired:
         """
-        TODO: What if we acquire the lock, but fail immediately, then reboot
-            and initiate another session to try and get the same lock?
-            - If we succeed and get the lock, then we can proceed as before
-            - If we fail, we'll keep looping as a replica until the original
-                session expires
+        TODO: TEST THIS
+        If we acquire the lock, but fail immediately and reboot, we will
+        init as a replica. Replica will init another session which will
+        try to get the lock, but the lock will be taken by the previous
+        orphaned session and will free up once that session expires.
         """
         # If we were able to acquire the lock, then the primary node is down
-        # Register as primary
-        # TODO: check these parameters make sense for various conditions
+        # 1. Deregister anything as the primary service
+        res = consul_client.health.service(service_info.service_name_primary)
+        if res[1]:
+            LOGGER.info(f'Deregistering old primary service_ids...')
+            for d in res[1]:
+                sid = d['Service']['ID']
+                dereg_res = consul_client.agent.service.deregister(sid)
+                LOGGER.info(f' > deregistered {sid} with result: {dereg_res}')
+
+        # 2. Register as primary
         register_success = consul_client.agent.service.register(
             name=service_info.service_name_primary,
             service_id=service_info.service_id,
@@ -154,8 +163,9 @@ def _no_primary(consul_client, service_info):
 
 def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo):
     """
-    TODO: Get the latest replica list
-      [ ] How to do this more dynamically (same for replicas getting primary)... but does that even matter
+    TODO: Get and set the latest state (what is the primary, what are the replicas)
+      [ ] How to do this more dynamically (same for replicas getting primary)...
+        are there Consul events that nodes can subscribe to.
     """
     consul_client.session.renew(session_id=service_info.session_id)
     LOGGER.info(f'Renewed session: {service_info.session_id}')
@@ -163,7 +173,7 @@ def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo
 
 def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> str:
     """
-    TODO: Get the latest primary
+    TODO: Get and set the latest state (what is the primary, what are the replicas)
     We're running as replica
     1. See if primary lock is available, if so, try to elevate to primary
       a. Try to acquire the lock - if cannot acquire, continue
@@ -182,6 +192,7 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
 
 
     if _no_primary(consul_client, service_info):
+        LOGGER.info(f'Attempting to register as primary')
         session_id = _try_register_as_primary(consul_client, service_info)
         if session_id is not None:
             service_info.set_session_id(session_id)
@@ -234,7 +245,6 @@ def start_service_registration_thread(app_config: dict):
     :param app_config: dictionary specifying the app 'mode' - to be modified
         by the service registration thread as needed
     """
-    LOGGER.info(f'****** CALLED start service reg')
     def monitor_registration_thread(check_interval_sec, app_config):
         t = None
         while True:
@@ -253,115 +263,4 @@ def start_service_registration_thread(app_config: dict):
         daemon=True,
         args=(monitor_interval_sec, app_config))
     monitor_thread.start()
-    LOGGER.info(f'****** DONE start service reg')
     return monitor_thread
-
-
-#### OLD CODE ####
-
-def _try_reg_as_primary(consul_client: consul.Consul, service_id: str, service_port: str) -> bool:
-    service_name = os.getenv('SERVICE_NAME_PRIMARY', None)
-    if not service_name:
-        raise Exception("Need to define SERVICE_NAME_PRIMARY in env vars")
-
-    LOGGER.info(f"Trying to register {service_id} as primary for {service_name}...")
-
-    # 1. Obtain a lock for registring as primary
-    session_id: str = consul_client.session.create(
-        name=f'{service_id}-{service_name}-lock',
-        behavior='release',
-        ttl=10,
-        lock_delay=0,
-    )
-
-    # 2. Try to acquire the lock
-    lock_name = f"locks/{service_name}"
-    lock_acquired: bool = consul_client.kv.put(
-        key=lock_name,
-        value=service_id,
-        acquire=session_id,
-    )
-    if lock_acquired:
-        LOGGER.info(f"Acquired lock {lock_name} for {service_name}: {service_id}")
-    else:
-        LOGGER.info(f"Could not acquire lock {lock_name} for {service_name}: {service_id}")
-        return False
-
-    if lock_acquired:
-        # TODO: add logic to release the lock once we're done
-        # 3. If lock is acquired, register the service
-        LOGGER.info(f"Registering service {service_name} with Consul...")
-        register_success: bool = consul_client.agent.service.register(
-            name=service_name,
-            service_id=service_id,
-            address=service_id,  # we happen to name them the same in Docker compose
-            port=int(service_port),
-            check={
-                'http': f'http://{service_id}:{service_port}/health',
-                'interval': '10s',
-                'deregister_critical_service_after': '1m'
-            }
-        )
-        if register_success:
-            LOGGER.info(f"SUCCESS: Registered {service_name} with Consul")
-            return True
-        else:
-            LOGGER.error(f"Failed to register {service_name} with Consul - API call failed")
-
-    return False
-
-
-def _reg_as_replica(consul_client: consul.Consul, service_id: str, service_port: str) -> None:
-    service_name = os.getenv('SERVICE_NAME_REPLICA', None)
-    if not service_name:
-        raise Exception("Need to define SERVICE_NAME_REPLICA in env vars")
-
-    register_success: bool = consul_client.agent.service.register(
-        name=service_name,
-        service_id=service_id,
-        address=service_id,  # we happen to name them the same in Docker compose
-        port=int(service_port),
-        check={
-            'http': f'http://{service_id}:{service_port}/health',
-            'interval': '10s',
-            'deregister_critical_service_after': '1m'
-        }
-    )
-    if not register_success:
-        LOGGER.error(f"Failed to register {service_id} with {service_name} in Consul - API call failed")
-        return False
-
-    LOGGER.info(f"Registered {service_id} with {service_name} in Consul")
-    return True
-
-
-def register_service() -> str:
-    consul_client = consul.Consul(host='consul-agent')
-
-    service_id = os.getenv('SERVICE_ID', None)
-    service_port = os.getenv('PORT', None)
-    if not service_id or not service_port:
-        raise Exception("Need to define SERVICE_ID and PORT in env vars")
-
-    num_attempts = 12
-    sleep_sec = 5
-    while num_attempts > 0:
-        try:
-            if _try_reg_as_primary(consul_client, service_id, service_port):
-                LOGGER.info("Registered as primary")
-                return 'primary'
-            # If we couldn't register as primary, then register as replica
-            break
-        except consul.exceptions.ConsulException as e:
-            LOGGER.error(f"ConsulException: {e}")
-        time.sleep(sleep_sec)
-        num_attempts -= 1
-
-    if num_attempts == 0:
-        raise Exception("Consul not available - unable to register service")
-
-    reg_success: bool = _reg_as_replica(consul_client, service_id, service_port)
-    if not reg_success:
-        raise Exception(f"Failed to register {service_id} with Consul - API call failed")
-
-    return 'replica'

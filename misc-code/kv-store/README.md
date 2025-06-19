@@ -8,6 +8,11 @@
     - Figure out how to kill kv store worker instances (probably
         docker-compose restart cmd)
 
+2025-06-19:
+    - Refactored Consul interaction model to use standard Consul
+        recommendations via session kv locking and expiration. Got interaction
+        working via separate threads that update uwsgi workers.
+
 2025-05-19:
     - UNRESOLVED ERROR: Consul would show a single kv-service registered as both the primary and replica
         - Error stopped occuring...
