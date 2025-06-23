@@ -15,10 +15,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ServiceInfo:
-    service_id: str
-    service_port: str
-    service_name_primary: str
-    service_name_replica: str
 
     def __init__(self, service_id: str, service_port: str, service_name_primary: str, service_name_replica: str):
         if None in [
@@ -64,6 +60,9 @@ reg_service_config = {
     'reg_primary_interval_sec': 10,
     # replica interval for performing operations
     'reg_replica_interval_sec': 5,
+    # if the primary lock is released (session expiration), how many seconds
+    # until another node can acquire it
+    'consul_primary_lock_delay_sec': 5,
 }
 
 
@@ -88,12 +87,11 @@ def _try_register_as_primary(
     #   interval run by the primary node so we can be safe
     # Lock delay prevents locks from being acquired for X seconds to give
     #   leader (potentially still alive) time to respond / mitigate
-    # TODO: put lock_delay into constants
     session_id = consul_client.session.create(
         name=service_info.session_name(),
         behavior='release',
         ttl=reg_service_config['reg_primary_interval_sec'] + 5,
-        lock_delay=5,
+        lock_delay=reg_service_config['consul_primary_lock_delay_sec'],
     )
     lock_acquired = consul_client.kv.put(
         key=service_info.primary_lock_name(),
@@ -102,7 +100,6 @@ def _try_register_as_primary(
     )
     if lock_acquired:
         """
-        TODO: TEST THIS
         If we acquire the lock, but fail immediately and reboot, we will
         init as a replica. Replica will init another session which will
         try to get the lock, but the lock will be taken by the previous
