@@ -19,6 +19,8 @@ logging.basicConfig(
 )
 app = flask.Flask(__name__)
 GLOBAL_STORE = kv_store.KVStore()
+# APP_CONFIG is a heap config structure shared between main worker thread and
+# the service registration thread.
 APP_CONFIG = {
     'mode': constants.APP_MODE_REPLICA, # Start each node off as a replica
 }

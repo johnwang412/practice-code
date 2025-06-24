@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 class ServiceInfo:
 
     def __init__(self, service_id: str, service_port: str, service_name_primary: str, service_name_replica: str):
-        if None in [
+        if '' in [
             service_id,
             service_port,
             service_name_primary,
@@ -41,14 +41,14 @@ class ServiceInfo:
     def set_session_id(self, session_id: str):
         self.session_id = session_id
 
-def _get_service_info() -> dict:
+def _get_service_info() -> ServiceInfo:
     si = ServiceInfo(
-        service_id=os.getenv('SERVICE_ID', None),
-        service_port=os.getenv('PORT', None),
+        service_id=os.getenv('SERVICE_ID', ''),
+        service_port=os.getenv('PORT', ''),
         # Name to register primary service as under Consul
-        service_name_primary=os.getenv('SERVICE_NAME_PRIMARY', None),
+        service_name_primary=os.getenv('SERVICE_NAME_PRIMARY', ''),
         # Name to register replica service as under Consul
-        service_name_replica=os.getenv('SERVICE_NAME_REPLICA', None)
+        service_name_replica=os.getenv('SERVICE_NAME_REPLICA', '')
     )
     return si
 
