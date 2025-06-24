@@ -163,6 +163,8 @@ def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo
     TODO: Get and set the latest state (what is the primary, what are the replicas)
       [ ] How to do this more dynamically (same for replicas getting primary)...
         are there Consul events that nodes can subscribe to.
+    TODO: Account for `renew` call failures - this node should stop processing requests
+    TODO: Account for all failure of Consul calls
     """
     consul_client.session.renew(session_id=service_info.session_id)
     LOGGER.info(f'Renewed session: {service_info.session_id}')
