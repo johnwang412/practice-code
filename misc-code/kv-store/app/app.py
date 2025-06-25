@@ -2,7 +2,8 @@ import json
 import logging
 
 import flask
-import uwsgi
+# uwsgi is not available outside of the uwsgi server environment so skip check
+import uwsgi # type: ignore
 import uwsgidecorators
 
 import kv_store
