@@ -24,6 +24,8 @@ GLOBAL_STORE = kv_store.KVStore()
 # the service registration thread.
 APP_CONFIG = {
     'mode': constants.APP_MODE_REPLICA, # Start each node off as a replica
+    'primary': '',
+    'replicas': [],
 }
 
 
@@ -67,4 +69,4 @@ def put():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return f'OK - mode: {APP_CONFIG["mode"]}', 200
+    return f'OK - mode: {APP_CONFIG}', 200

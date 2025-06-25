@@ -162,11 +162,29 @@ def _no_primary(consul_client, service_info):
     return False
 
 
+def _get_nodes(consul_client: consul.Consul, service_info: ServiceInfo) -> tuple[str, list[str]]:
+    """Get the list of nodes registered as primary and replicas
+    :return: (primary_node_id, [replica_node_ids])
+    """
+    primary_node_id = None
+    replica_node_ids = []
+
+    # Get primary node
+    res = consul_client.health.service(service_info.service_name_primary)
+    if res[1]:
+        primary_node_id = res[1][0]['Service']['ID']
+
+    # Get replica nodes
+    res = consul_client.health.service(service_info.service_name_replica)
+    if res[1]:
+        for d in res[1]:
+            replica_node_ids.append(d['Service']['ID'])
+
+    return primary_node_id, replica_node_ids
+
+
 def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> bool:
     """
-    TODO: Get and set the latest state (what is the primary, what are the replicas)
-      [ ] How to do this more dynamically (same for replicas getting primary)...
-        are there Consul events that nodes can subscribe to.
     """
     try:
         consul_client.session.renew(session_id=service_info.session_id)
@@ -179,7 +197,6 @@ def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo
 
 def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> str:
     """
-    TODO: Get and set the latest state (what is the primary, what are the replicas)
     We're running as replica
     1. See if primary lock is available, if so, try to elevate to primary
       a. Try to acquire the lock - if cannot acquire, continue
@@ -247,6 +264,9 @@ def service_registration_thread(app_config):
                     service_info.set_session_id(None)
             elif app_config['mode'] == constants.APP_MODE_REPLICA:
                 app_config['mode'] = _run_replica_configs(consul_client, service_info)
+            primary, replicas = _get_nodes(consul_client, service_info)
+            app_config['primary'] = primary
+            app_config['replicas'] = replicas
         except Exception as e:
             LOGGER.error(e)
 
