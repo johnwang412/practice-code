@@ -77,7 +77,13 @@ def _get_sleep_interval(app_mode: str) -> int:
 
 def _try_register_as_primary(
         consul_client: consul.Consul, service_info: ServiceInfo) -> Optional[str]:
-    """
+    """Try to become the primary
+    First acquire lock for primary node. Even if lock is acquired, ensure we
+    are registered as primary service before returning session_id signifying
+    we are the primary.
+    If lock acquired and register call to Consul does not succeed, we continue
+    acting as a replica. We shouldn't be getting traffic in that case anyways.
+
     :return: Session id if primary registration was successful, else None
     """
     # Try to acquire the primary lock
@@ -131,8 +137,6 @@ def _try_register_as_primary(
         If we crash out here, we've registered as primary to Consul but we'll
         be running as replica on boot. KV store users will get forwarded to us
         so we should reject all writes if we're a replica.
-        TODO: when a replica boots up, can it (should it) check if it used to
-            be the primary?
         """
         if register_success:
             # Note: If this node was a replica, we don't have to deregister it
@@ -140,7 +144,7 @@ def _try_register_as_primary(
             # registered to a single service in Consul
             return session_id
 
-        return None
+    return None
 
 
 def _no_primary(consul_client, service_info):
@@ -158,16 +162,19 @@ def _no_primary(consul_client, service_info):
     return False
 
 
-def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo):
+def _run_primary_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> bool:
     """
     TODO: Get and set the latest state (what is the primary, what are the replicas)
       [ ] How to do this more dynamically (same for replicas getting primary)...
         are there Consul events that nodes can subscribe to.
-    TODO: Account for `renew` call failures - this node should stop processing requests
-    TODO: Account for all failure of Consul calls
     """
-    consul_client.session.renew(session_id=service_info.session_id)
-    LOGGER.info(f'Renewed session: {service_info.session_id}')
+    try:
+        consul_client.session.renew(session_id=service_info.session_id)
+        LOGGER.info(f'Renewed session: {service_info.session_id}')
+        return True
+    except Exception as e:
+        LOGGER.error(f'Exception renewing session ({service_info.session_id}): {e}')
+    return False
 
 
 def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo) -> str:
@@ -194,6 +201,7 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
         LOGGER.info(f'Attempting to register as primary')
         session_id = _try_register_as_primary(consul_client, service_info)
         if session_id is not None:
+            # Set session id so we can continue to renew it
             service_info.set_session_id(session_id)
             resulting_app_mode = constants.APP_MODE_PRIMARY
             LOGGER.info(f'Set node as primary')
@@ -201,7 +209,7 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
     # if we're the replica, we should register as such
     if resulting_app_mode == constants.APP_MODE_REPLICA:
         # Try to re-register as replica to avoid being unregistered
-        consul_client.agent.service.register(
+        res = consul_client.agent.service.register(
             name=service_info.service_name_replica,
             service_id=service_info.service_id,
             address=service_info.service_id,
@@ -212,7 +220,10 @@ def _run_replica_configs(consul_client: consul.Consul, service_info: ServiceInfo
                 'deregister_critical_service_after': '1m'
             }
         )
-        LOGGER.info(f'Set node as replica')
+        if not res:
+            LOGGER.info(f'Failed to register service id ({service_info.service_id}) as replica. Will retry next interval.')
+        else:
+            LOGGER.info(f'Set node as replica')
 
     return resulting_app_mode
 
@@ -229,7 +240,11 @@ def service_registration_thread(app_config):
         try:
             # IF app_config is primary, then do primary activities, else do replica activities
             if app_config['mode'] == constants.APP_MODE_PRIMARY:
-                _run_primary_configs(consul_client, service_info)
+                is_primary = _run_primary_configs(consul_client, service_info)
+                if not is_primary:
+                    # Failed to renew session, so reverting to replica
+                    app_config['mode'] = constants.APP_MODE_REPLICA
+                    service_info.set_session_id(None)
             elif app_config['mode'] == constants.APP_MODE_REPLICA:
                 app_config['mode'] = _run_replica_configs(consul_client, service_info)
         except Exception as e:
