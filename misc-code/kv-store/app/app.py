@@ -52,12 +52,13 @@ def get():
 @app.route('/put', methods=['PUT'])
 def put():
     """
-    TODO: reject writes if we're running in replica mode
     TODO: when replicating writes to replicas, do not replicate to self
         in case self is in the list of replicas
     """
-    global GLOBAL_STORE
+    if APP_CONFIG['mode'] != constants.APP_MODE_PRIMARY:
+        return 'Writes only allowed on primary node', 403
 
+    global GLOBAL_STORE
     data = flask.request.get_json()
     key = data.get('key')
     val = data.get('value')
