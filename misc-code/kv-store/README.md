@@ -3,10 +3,15 @@
 - TODO:
     - Get a synchronous version of replication running - test this
         - Get primary to replicate to replicas synchronousl
-    - Write logic to register kv store instances as either leader or
-        replica
-    - Figure out how to kill kv store worker instances (probably
-        docker-compose restart cmd)
+
+2025-06-26:
+    - Hardened Consul interactions - done with this now (though I need to
+        write tests ideally)
+    - Thought through 2PC semantics and, after some thinking and reading,
+        understood more clearly why 2PC doesn't really work if we need actual
+        consistency.
+    - Next step is to think through log based replication or consensus based
+        replication.
 
 2025-06-19:
     - Refactored Consul interaction model to use standard Consul
