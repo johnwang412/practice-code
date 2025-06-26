@@ -26,6 +26,24 @@ Consul registration
 
 # Replication
 
+[ ] How does new leader know what to replicate to new followers that may be behind?
+
+## 2 Phase Commit
+
+Need to implement a transaction coordinator. If using the primary instance as
+a coordinator, then cannot have replicas auto promote to primary if the primary
+goes down since the primary is the coordinator and the 2PC transaction log on
+the primary (i.e., the coordinator) will be lost.
+
+## Log replication
+
+[ ] Think through this
+
+
+# Leader election
+
+2026-06-26 update: Using Consul session / kv framework for leader election.
+
 ## Option 1
 
 Each primary replication request has an incrementing ID. When primary fails,
@@ -43,9 +61,3 @@ the replica with greatest ID is elected leader.
         IMPLICATION is that replicas should only check if all active replicas
         have a sequence number and not that there are as many sequence nubmers
         as active replicas.
-    [ ] Sequence numbers probably need to be written to disk
-
-[ ] How to determine whether the leader is truly down? What if leader comes back after long
-    network partition and a new leader already exists? (use generation numbers)
-
-[ ] How does new leader know what to replicate to new followers that may be behind?
