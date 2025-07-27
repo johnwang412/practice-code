@@ -1,20 +1,21 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
 from models import Base
 
 # Get database URL from environment variable
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
+    "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/urlshortener"
 )
 
 # Create SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
-    poolclass=StaticPool,
+    pool_size=10,
+    max_overflow=20,
     pool_pre_ping=True,
+    pool_recycle=3600,
     echo=False  # Set to True for SQL query logging
 )
 

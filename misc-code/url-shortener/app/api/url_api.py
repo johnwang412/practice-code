@@ -9,6 +9,14 @@ from logic.shorten_url import create_short_url, get_original_url
 
 app = FastAPI(title="URL Shortener Service", version="1.0.0")
 
+# You can see thread pool info in logs by adding this startup event
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    loop = asyncio.get_event_loop()
+    print(f"Thread pool executor: {loop._default_executor}")
+    print(f"Max workers: {loop._default_executor._max_workers if loop._default_executor else 'Default'}")
+
 
 class URLRequest(BaseModel):
     url: HttpUrl
@@ -40,6 +48,13 @@ def shorten_url_endpoint(
     Returns:
         URLResponse with original URL, short code, and full short URL
     """
+    return URLResponse(
+        original_url=str(request.url),
+        short_code='foo',
+        short_url='http://foo.bar/baz',
+    )
+
+
     url_mapping = create_short_url(str(request.url), db)
 
     if not url_mapping:

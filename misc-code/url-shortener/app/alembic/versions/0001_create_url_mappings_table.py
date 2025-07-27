@@ -1,7 +1,7 @@
 """Create url_mappings table
 
 Revision ID: 0001
-Revises: 
+Revises:
 Create Date: 2025-01-07 12:00:00.000000
 
 """
@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create indexes
     op.create_index(op.f('ix_url_mappings_id'), 'url_mappings', ['id'], unique=False)
     op.create_index(op.f('ix_url_mappings_short_code'), 'url_mappings', ['short_code'], unique=True)
@@ -37,6 +37,6 @@ def downgrade() -> None:
     op.drop_index('idx_short_code', table_name='url_mappings')
     op.drop_index(op.f('ix_url_mappings_short_code'), table_name='url_mappings')
     op.drop_index(op.f('ix_url_mappings_id'), table_name='url_mappings')
-    
+
     # Drop table
     op.drop_table('url_mappings')

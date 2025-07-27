@@ -11,8 +11,8 @@ echo "PostgreSQL is ready!"
 
 # Run Alembic migrations
 echo "Running database migrations..."
-alembic upgrade head
+alembic -c alembic/alembic.ini upgrade head
 
 # Start the FastAPI application
 echo "Starting FastAPI application..."
-exec uvicorn api.url_api:app --host 0.0.0.0 --port 8000
+exec uvicorn api.url_api:app --host 0.0.0.0 --port 8000 --workers 12
