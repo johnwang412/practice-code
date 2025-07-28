@@ -48,11 +48,11 @@ def shorten_url_endpoint(
     Returns:
         URLResponse with original URL, short code, and full short URL
     """
-    return URLResponse(
-        original_url=str(request.url),
-        short_code='foo',
-        short_url='http://foo.bar/baz',
-    )
+    # return URLResponse(
+    #     original_url=str(request.url),
+    #     short_code='foo',
+    #     short_url='http://foo.bar/baz',
+    # )
 
 
     url_mapping = create_short_url(str(request.url), db)

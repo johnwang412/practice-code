@@ -4,7 +4,7 @@
 	python -m venv .venv
 
 dev: .venv
-	.venv/bin/pip install -r app-shortener/requirements.txt
+	.venv/bin/pip install -r app/requirements.txt
 
 local-up:
 	docker-compose up -d

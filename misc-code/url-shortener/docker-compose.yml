@@ -1,13 +1,13 @@
 services:
-  url-shortener:
-    build: .
-    container_name: url-shortener
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/urlshortener
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
+  # url-shortener:
+  #   build: .
+  #   container_name: url-shortener
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/urlshortener
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - postgres
 
   postgres:
     image: postgres:15

@@ -6,6 +6,28 @@ Proposed setup #1
 - API - health endpoint only
 - TRY to max out connections
 
+Results
+- Running naive comparison on local and on docker stack results in a big
+    difference: 16K with webserver on local vs 6K on docker
+    - each setup with uvicorn 8 workers and 4 locust processes generating load
+- Running Locust and webservers on localhost (not docker) and leaving Postgres
+    on docker container (out of convenience)
+    - averaging 2.8K RPS on PUTs - steady over 1 min
+    - still a lot of ClientRead waits in pg_stat_activity
+        urlshortener=# SELECT wait_event, count(1)
+        FROM pg_stat_activity
+        WHERE state <> 'idle' group by wait_event;
+        wait_event  | count
+        --------------+-------
+                    |     1
+        DataFileRead |     4
+        WALSync      |     1
+        WALWrite     |    10
+        ClientRead   |    15
+        (5 rows)
+    - But also some more WALWrite and DataFileRead wait events
+
+
 
 ## 2025-07-26
 
