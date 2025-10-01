@@ -1,3 +1,78 @@
+## 2025-10-01
+
+Test whether throughput is bottlenecked on App Server side: Try load script
+with an empty table and see what the throughput is.
+
+## 2025-09-30
+
+Revisiting previous work to see where I left off. Combining some testing from
+7/29 and 7/27.
+
+Findings: Can get ~4K RPS. At that point, bottleneck seems to be on client
+side (FastAPI instances or Locust) because DB process waits are almost all of
+type "Client."
+
+Tested with following config:
+- Postgres db in a docker container with ~100M records
+    - `make local-up`
+- App server running on local machine:
+    - `uvicorn api.url_api:app --host 0.0.0.0 --port 8000 --workers 8`
+- Using locust testing with script. Only making PUT requests to insert new
+records.
+    - `locust -f integration-tests/locust-load-test.py`
+
+Results:
+- 5 concurrent Locust users: ~2K RPS, not much db wait activity (3 total wait
+    events from pg_stat_activity), ~3ms response time (95th %)
+
+    urlshortener=> SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
+            state        | count
+    ---------------------+-------
+                        |     5
+    active              |     1
+    idle in transaction |     2
+    idle                |    35
+    (4 rows)
+
+
+- 20 concurrent Locust users: ~4K RPS, more wait activity (~8 with ~6
+    ClientReads), ~7ms response time (95th)
+
+    urlshortener=> SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
+            state        | count
+    ---------------------+-------
+                        |     5
+    active              |     3
+    idle in transaction |     8
+    idle                |    27
+    (4 rows)
+
+
+- 30 concurrent Locust users: ~4K RPS (maybe ~4100), more wait activity (9-12
+    ClientReads), ~10ms response time (95th)
+
+    urlshortener=> SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
+            state        | count
+    ---------------------+-------
+                        |     5
+    active              |     3
+    idle in transaction |    12
+    idle                |    23
+    (4 rows)
+
+
+## 2025-07-29
+
+Previous attempts summary:
+- Got DB write throughput up over 3K. I think around 4K? Need to test again.
+    [ ] Confirm write throughput
+    [ ] Record # of Locust and FastAPI workers
+- Try reducing DB connection overhead
+    [ ] Local DB conn pooling - change get_db() call to keep a persistent
+        local session in memory
+    [ ] Ext DB conn pooling - pg_bouncer
+
+
 ## 2025-07-27
 
 Proposed setup #1
@@ -26,7 +101,6 @@ Results
         ClientRead   |    15
         (5 rows)
     - But also some more WALWrite and DataFileRead wait events
-
 
 
 ## 2025-07-26
