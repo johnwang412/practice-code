@@ -1,7 +1,57 @@
+## 2025-10-26
+
+IMPORTANT CHANGE:
+- Moved url_mapping ORM to point back to the `url_mappings` table. Was pointed
+at `um2` for the "empty table test".
+
+Sadness. Last time I was messing around, I noticed that I was logging into a
+different Postgres database from remote versus from local. Turns out I had my
+local Postgres running (brew services) at the same time as my docker instance.
+
+So now, I don't know which one I was running tests on. Luckily, both tables
+had 100M+ records as of 9/30/2025.
+
+Wasted almost 2 hours between last time and today. Anyways, now I can move on
+with testing load constraints on the client side.
+
 ## 2025-10-01
+
+### TEST 1: Empty DB table
 
 Test whether throughput is bottlenecked on App Server side: Try load script
 with an empty table and see what the throughput is.
+
+Setup:
+- Same infra as yesterday
+- On an empty table with same indexes
+
+Results:
+- 1 user - RPS maxes out around 500
+- 20 users - RPS maxes out around 4K - latency around 9ms at 95th %
+- 30 users - ~4.2K RPS
+
+Confirmed that table size and performance is not the bottleneck because I'm
+getting same results with empty table as a table with 100M records. Still need
+to determine if bottleneck is actually on client side and what the bottleneck
+is.
+
+### TEST 2: Change # workers
+
+Delta from test 1: Instead of 8 app server workers, using just 4. Expecting RPS
+to drop if bottleneck is workers.
+
+Results: RPS ~ 2.6K for 20 concurrent users
+
+Another test with 10 app server workers: RPS caps out at 4K
+
+So maybe hitting system limits of local machine.
+
+### TEST 3: Test with additional client
+
+Delta from test 1: Use additional machine (laptop) to send requests to DB.
+- Main machine (Mac Studio) runs same test as TEST 1 (8 app server workers)
+- Macbook simultaneously runs load against Mac Studio DB
+
 
 ## 2025-09-30
 

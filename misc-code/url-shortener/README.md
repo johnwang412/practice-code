@@ -2,6 +2,10 @@
 
 URL shortener
 
+# Current application state
+
+TODO: note any specifics about current application state
+
 # Usage
 
 - Postgres running in Docker

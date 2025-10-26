@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, HttpUrl
@@ -6,6 +8,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from logic.shorten_url import create_short_url, get_original_url
 
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="URL Shortener Service", version="1.0.0")
 
@@ -49,9 +53,7 @@ def shorten_url_endpoint(
         URLResponse with original URL, short code, and full short URL
     """
     # return URLResponse(
-    #     original_url=str(request.url),
-    #     short_code='foo',
-    #     short_url='http://foo.bar/baz',
+    #     orig='http://foo.bar/baz',
     # )
 
 
@@ -89,6 +91,7 @@ def redirect_to_original_url(
     Returns:
         RedirectResponse to the original URL
     """
+    LOGGER.info(f"Redirect request for short code: {short_code}")
     original_url = get_original_url(short_code, db)
 
     if not original_url:

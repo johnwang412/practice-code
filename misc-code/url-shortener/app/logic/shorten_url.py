@@ -1,11 +1,15 @@
 import hashlib
 import secrets
 import string
+import logging
 from typing import Optional
-from sqlalchemy.orm import Session
 from bos.url_repository import URLRepository
 from models import URLMapping
 
+from sqlalchemy.orm import Session
+
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 def _sanitize(url: str) -> str:
     """
@@ -88,6 +92,7 @@ def get_original_url(short_code: str, db: Session) -> Optional[str]:
         return None
 
     repository = URLRepository(db)
+    LOGGER.info(f"Looking up original URL for short code: {short_code}")
     mapping = repository.get_url_by_short_code(short_code.strip())
     return mapping.original_url if mapping else None
 
