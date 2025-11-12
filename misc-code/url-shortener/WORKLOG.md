@@ -1,3 +1,31 @@
+## 2025-11-11
+
+Context:
+- Running load from macbook laptop and the mac studio
+    - macbook: `locust -f integration-tests/locust-load-test.py --processes 6`
+        - 500 concurrent users
+    - studio: `locust -f integration-tests/locust-load-test.py`
+        - 250 concurrent users
+- uvicorn app server is hosted on the mac studio
+    `uvicorn api.url_api:app --host 0.0.0.0 --port 8000 --workers 8 --log-level error`
+
+Outcome
+- Getting around 4K RPS with just macbook at 500 concurrent users
+- Once studio load kicked in with 250 more users, the total RPS dropped to
+    around 3600. Studio was doing 1K with macbook doing 2.6K
+- Database idle waits were mostly on ClientRead averaging 190 to 200 at a time
+- uvicorn app server was getting timeout errors
+    `sqlalchemy.exc.TimeoutError: QueuePool limit of size 10 overflow 20 reached, connection timed out`
+    - My `create_engine` call had pool_size=10 and max_overflow=20
+
+Action
+- Double to pool_size=20 and max_overflow=40
+Results
+- RPS dropped drastically with just 200 concurrent users from single host
+(macbook) ... need to troubleshoot, dunno what happened. Latency went to 10+
+seconds.
+
+
 ## 2025-10-26
 
 IMPORTANT CHANGE:

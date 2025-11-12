@@ -21,6 +21,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - .:/home
+    command: postgres -c 'max_connections=500'
 
 volumes:
   postgres_data:
